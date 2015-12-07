@@ -1,0 +1,31 @@
+---
+title: "Visitando un Torneo de Ajedrez"
+author: "José Miguel González Aguilera"
+date: "7 de diciembre de 2015"
+output: html_document
+---
+
+>Este fin de semana no es un fin de semana cualquiera que pueda pensarse.
+
+>Este es otro párrafo.
+
+* Contar el número de partidas, cuántas ganaron las blancas, cuántas tablas y cuántas las negras.
+* Junto con su distribución
+
+>Y este es otro más.
+
+* Enseñar la foto de los primeros movimientos. (primer movimiento de las blancas, primer movimiento de las negras)
+
+* Enseñar el número de movimientos de las partidas junto con su distribución.
+
+* Destacar el grupito de jaques abajo
+
+* Enseñar la evolución de la partida (distribución de los movimientos) conforme avanza la partida.
+
+* Enseñar la foto en la que estaba el Rey blanco en cada partida (y el rey negro en cada partida).
+
+* Enseñar quién mató al Rey Blanco y al negro en cada partida (grafo)
+
+* Que las imágenes sean de buen tamaño (600x600 px por lo menos)
+
+* Poner agradecimientos al final
