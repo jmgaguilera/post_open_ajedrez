@@ -47,9 +47,13 @@ df_all_movements <- adply(games, .margins = 1, function(x){
     df_movements %<>% mutate(toca_mover=ifelse(df_movements$num_ply %% 2 == 0, 'w', 'b'))
     df_movements %<>% mutate(id = x[p,"id"])
     
+    # añadir la posición desde la que se realizaba el movimiento
+    
+    df_movements %<>% left_join(chss$history_detail(), by = c("num_ply" = "number_move"))
+    
     df_all_movements %<>% rbind.fill(df_movements)
   }
   return(df_all_movements)
-}, .parallel = TRUE, .paropts = list(.packages = c("rchess", "magrittr")))
+}, .parallel = TRUE, .paropts = list(.packages = c("rchess", "magrittr", "dplyr")))
 
 save(df_all_movements, file="all_movements.RData")
