@@ -18,6 +18,7 @@ El análisis completo, junto con los dataframes, está publicado en github en es
 ******************************
 
 ```{r Cargar_datasets, echo=F, message=F, warning=F}
+rm(list = ls())
 
 library(magrittr)
 library(ggplot2)
@@ -86,10 +87,10 @@ Las aperturas están muy estudiadas. Estos son los primeros movimientos de las b
 dfboard <- rchess:::.chessboarddata() %>%
   select(cell, col, row, x, y, cc)
 
-dfpaths <- df_all_movements %>% filter(num_ply == c(1, 3, 5)) %>%
-  left_join(dfboard %>% rename(from = cell, x.from = x, y.from = y),
+dfpaths <- df_all_movements %>% filter(num_ply %in% c(1, 3, 5)) %>%
+  left_join(dfboard %>% dplyr::rename(from = cell, x.from = x, y.from = y),
             by = "from") %>%
-  left_join(dfboard %>% rename(to = cell, x.to = x, y.to = y) %>% select(-cc, -col, -row),
+  left_join(dfboard %>% dplyr::rename(to = cell, x.to = x, y.to = y) %>% select(-cc, -col, -row),
             by = "to") %>%
   mutate(x_gt_y = abs(x.to - x.from) > abs(y.to - y.from),
          xy_sign = sign((x.to - x.from)*(y.to - y.from)) == 1,
@@ -106,9 +107,9 @@ gg_blancas <- ggplot() +
   coord_equal()
 
 dfpaths <- df_all_movements %>% filter(num_ply == c(2, 4, 6)) %>%
-  left_join(dfboard %>% rename(from = cell, x.from = x, y.from = y),
+  left_join(dfboard %>% dplyr::rename(from = cell, x.from = x, y.from = y),
             by = "from") %>%
-  left_join(dfboard %>% rename(to = cell, x.to = x, y.to = y) %>% select(-cc, -col, -row),
+  left_join(dfboard %>% dplyr::rename(to = cell, x.to = x, y.to = y) %>% select(-cc, -col, -row),
             by = "to") %>%
   mutate(x_gt_y = abs(x.to - x.from) > abs(y.to - y.from),
          xy_sign = sign((x.to - x.from)*(y.to - y.from)) == 1,
@@ -127,8 +128,10 @@ gg_negras <- ggplot() +
 grid.arrange(gg_blancas, gg_negras, ncol=2)
 
 ```
+<p align="center">
+![Evolución de los primeros 14 movimientos](./board_movement.gif)
+</p>
 
-* TODO: Enseñar la foto de los primeros movimientos. (primer movimiento de las blancas, primer movimiento de las negras)
 
 ******************************
 
@@ -249,12 +252,71 @@ for (i in 1:13) {
 
 # Final
 
-* Enseñar la foto en la que estaba el Rey blanco en cada partida (y el rey negro en cada partida).
+```{r buscar_posicion_reyes, echo=F, message=F, warning=F}
+reyes_blancos <- subset(df_all_movements, df_all_movements$piece == "White King" & 
+                          df_all_movements$status == "game over") %>% select(id, result, to)
+reyes_blancos <- left_join(games, reyes_blancos, by = "id") %>% select(id, result = result.x, to) %>% filter(is.na(to)) %>% mutate(to = "e1") %>% rbind(reyes_blancos) %>% mutate(piece = "Rey Blanco")
 
-* Enseñar quién mató al Rey Blanco y al negro en cada partida (grafo)
+reyes_negros <- subset(df_all_movements, df_all_movements$piece == "Black King" & 
+                          df_all_movements$status == "game over") %>% select(id, result, to)
+reyes_negros <- left_join(games, reyes_negros, by = "id") %>% select(id, result = result.x, to) %>% filter(is.na(to)) %>% mutate(to = "e1") %>% rbind(reyes_negros) %>% mutate(piece = "Rey Negro")
 
-* Que las imágenes sean de buen tamaño (600x600 px por lo menos)
+reyes <- rbind(reyes_blancos, reyes_negros)
 
+reyes_pos_freq <- ddply(reyes, c("result", "piece", "to"), summarise, freq = length(id))
+
+
+df_freq <- reyes_pos_freq %>% filter(result != "*") %>%
+  plyr::rename(replace=c("to" = "cell")) %>%
+  full_join(dfboard, by = "cell")
+  
+dfboard2 <- data_frame(x = 0:8 + 0.5, y = 0 + 0.5, xend = 0:8 + 0.5, yend = 8 + 0.5)
+
+```
+<p align="center">
+```{r posición_reyes_porc, echo=F, message=F, warning=F, fig.height=10, fig.width=10}
+
+ggplot(df_freq) +
+  geom_tile(data = df_freq,
+            aes(x, y, fill = freq)) +
+  scale_fill_gradient(low = "gray80",  high = "gray20") +
+  geom_text(data = df_freq,
+            aes(x, y, label = scales::percent(freq/nrow(games))),
+            color = "white", size = 4) +
+  scale_x_continuous(breaks = 1:8, labels = letters[1:8]) +
+  scale_y_continuous(breaks = 1:8, labels = 1:8)  +
+  geom_segment(data = dfboard2, aes(x, y, xend = xend, yend = yend), color = "gray10") +
+  geom_segment(data = dfboard2, aes(y, x, xend = yend, yend = xend), color = "gray10") +
+  ggtitle("Lugar de finalización de los reyes (en porcentajes)") + 
+  facet_grid(piece ~ result) +
+  coord_equal() + 
+  theme_minimal() +
+  theme(legend.position = "none")
+
+```
+</p>
+
+<p align="center">
+```{r posición_reyes_numero, echo=F, message=F, warning=F, fig.height=10, fig.width=10}
+ggplot(df_freq) +
+  geom_tile(data = df_freq,
+            aes(x, y, fill = freq)) +
+  scale_fill_gradient(low = "gray80",  high = "gray20") +
+  geom_text(data = df_freq,
+            aes(x, y, label = freq),
+            color = "white", size = 4) +
+  scale_x_continuous(breaks = 1:8, labels = letters[1:8]) +
+  scale_y_continuous(breaks = 1:8, labels = 1:8)  +
+  geom_segment(data = dfboard2, aes(x, y, xend = xend, yend = yend), color = "gray10") +
+  geom_segment(data = dfboard2, aes(y, x, xend = yend, yend = xend), color = "gray10") +
+  ggtitle("Lugar de finalización de los reyes (en número de partidas)") + 
+  facet_grid(piece ~ result) +
+  coord_equal() + 
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+</p>
+****
 = Agradecimientos
 
 * Poner agradecimientos al final
